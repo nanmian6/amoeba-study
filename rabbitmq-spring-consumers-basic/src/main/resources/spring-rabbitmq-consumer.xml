@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+    <!--加载配置文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!-- 定义rabbitmq connectionFactory -->
+    <rabbit:connection-factory id="connectionFactory" host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtual-host}"/>
+
+    <bean id="springQueueListener" class="com.nanmian.listener.SpringQueueListener"/>
+    <bean id="fanoutListener1" class="com.nanmian.listener.FanoutListener"/>
+    <bean id="fanoutListener2" class="com.nanmian.listener.FanoutListener"/>
+    <bean id="directListener" class="com.nanmian.listener.DirectListener"/>
+    <bean id="topicListenerStar" class="com.nanmian.listener.TopicListener"/>
+    <bean id="topicListenerWell" class="com.nanmian.listener.TopicListener"/>
+    <bean id="topicListenerWell2" class="com.nanmian.listener.TopicListener"/>
+
+    <rabbit:listener-container connection-factory="connectionFactory" auto-declare="true">
+       <rabbit:listener ref="springQueueListener" queue-names="spring_queue"/>
+        <rabbit:listener ref="fanoutListener1" queue-names="spring_fanout_queue_1"/>
+        <rabbit:listener ref="fanoutListener2" queue-names="spring_fanout_queue_2"/>
+        <rabbit:listener ref="directListener" queue-names="spring_direct_queue"/>
+        <rabbit:listener ref="topicListenerStar" queue-names="spring_topic_queue_star"/>
+        <rabbit:listener ref="topicListenerWell" queue-names="spring_topic_queue_well"/>
+        <rabbit:listener ref="topicListenerWell2" queue-names="spring_topic_queue_well2"/>
+    </rabbit:listener-container>
+
+
+    <context:component-scan base-package="com.nanmian.listener" />
+
+    <!--定义监听器容器
+      acknowledge="manual":手动签收
+      prefetch="1":每次抓取多少条消息
+    -->
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="manual" prefetch="2" >
+
+        <rabbit:listener ref="ackListener" queue-names="test_queue_confirm"></rabbit:listener>
+<!--        <rabbit:listener ref="ackListener" queue-names="test_queue_ttl"></rabbit:listener>-->
+<!--        <rabbit:listener ref="qosListener" queue-names="test_queue_confirm"></rabbit:listener>-->
+
+<!--        定义监听器，监听正常队列-->
+        <rabbit:listener ref="dlxListener" queue-names="queue_dlx"></rabbit:listener>
+        <rabbit:listener ref="ackListener" queue-names="test_queue_dlx"></rabbit:listener>
+
+<!--        延迟队列效果实现：  一定要监听的是 死信队列！！！-->
+          <rabbit:listener ref="orderListener" queue-names="order_queue_dlx"></rabbit:listener>
+
+    </rabbit:listener-container>
+
+</beans>
